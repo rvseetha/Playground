@@ -11,10 +11,11 @@ repositories {
 
 dependencies {
     testImplementation(kotlin("test"))
+    testImplementation("org.testng:testng:7.10.2")
 }
 
 tasks.test {
-    useJUnitPlatform()
+    useTestNG()
 }
 kotlin {
     jvmToolchain(21)
