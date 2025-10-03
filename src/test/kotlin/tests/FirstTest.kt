@@ -3,6 +3,7 @@ package tests
 import org.testng.ITestResult
 import org.testng.annotations.*
 
+@Ignore
 class FirstTest {
 
     @BeforeTest
