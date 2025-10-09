@@ -32,7 +32,7 @@ jobs:
           key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
 
       - name: Delete report folders older than 5 minutes
-        run: find build/reports/jgiven-html -mindepth 1 -maxdepth 1 -type d -mmin +5 -exec rm -rf {} +
+        run: if [ -d build/reports/jgiven-html ]; then find build/reports/jgiven-html -mindepth 1 -maxdepth 1 -type d -mmin +5 -exec rm -rf {} +; fi
 
       - name: Run build and JGiven report
         run: ./gradlew clean test jgivenReport --info
@@ -45,8 +45,9 @@ jobs:
 
       - name: Move report to history folder
         run: |
+          shopt -s dotglob
           mkdir -p build/reports/jgiven-html/$RUN_ID
-          find build/reports/jgiven-html -maxdepth 1 ! -name "$RUN_ID" -type f -exec mv {} build/reports/jgiven-html/$RUN_ID/ \;     
+          mv build/reports/jgiven-html/* build/reports/jgiven-html/$RUN_ID/   
 
       - name: Deploy JGiven HTML report to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
