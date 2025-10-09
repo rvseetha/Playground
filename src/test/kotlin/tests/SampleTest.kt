@@ -21,4 +21,17 @@ open class SampleTest : ScenarioTest<SampleGivenStage, SampleWhenStage, SampleTh
             .sample_given_func6()
     }
 
+    @Test
+    fun sample_test_failure() {
+        given()
+            .sample_given_func1()
+            .sample_given_func2()
+        `when`()
+            .sample_when_func3()
+            .sample_when_func4()
+        then()
+            .sample_then_func7()
+            .sample_given_func8()
+    }
+
 }

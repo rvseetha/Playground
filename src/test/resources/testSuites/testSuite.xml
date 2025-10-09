@@ -3,6 +3,8 @@
 <suite name="SampleSuite">
     <listeners>
         <listener class-name="com.tngtech.jgiven.testng.ScenarioTestListener"/>
+        <listener class-name="utils.listeners.RetryTransformer"/>
+        <listener class-name="utils.listeners.JGivenRetryAwareListener"/>
     </listeners>
     <test name="SampleTest">
         <packages>
