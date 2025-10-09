@@ -1,5 +1,5 @@
 name: Automatic Build and JGiven Report
-#description: Automatically builds the project and generates a JGiven report on code push or pull request.
+#description5: Automatically builds the project and generates a JGiven report on code push or pull request.
 
 on:
   push:
