@@ -2,9 +2,10 @@ name: Automatic Build and JGiven Report
 #description: Automatically builds the project and generates a JGiven report on code push or pull request.
 
 on:
-  push:
-    branches: [ main, feature/publish-to-github-pages ]
-  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: write
+
 
 jobs:
   build:
@@ -31,10 +32,13 @@ jobs:
       - name: Run build and JGiven report
         run: ./gradlew clean test jgivenReport --info
 
+      - name: List JGiven report files
+        run: ls -l build/reports/jgiven-html
+
       - name: Deploy JGiven HTML report to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: build/reports/jgiven/html
+          publish_dir: build/reports/jgiven-html
           publish_branch: gh-pages
           force_orphan: true
