@@ -2,7 +2,9 @@ name: Automatic Build and JGiven Report
 #description: Automatically builds the project and generates a JGiven report on code push or pull request.
 
 on:
-  workflow_dispatch:
+  push:
+    branches: [ main, feature/publish-to-github-pages ]
+  pull_request:
 permissions:
   contents: write
 
