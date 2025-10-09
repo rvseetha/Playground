@@ -43,7 +43,7 @@ jobs:
       - name: Move report to history folder
         run: |
           mkdir -p build/reports/jgiven-html/$RUN_ID
-          mv build/reports/jgiven-html/* build/reports/jgiven-html/$RUN_ID/     
+          find build/reports/jgiven-html -maxdepth 1 ! -name "$RUN_ID" -type f -exec mv {} build/reports/jgiven-html/$RUN_ID/ \;     
 
       - name: Deploy JGiven HTML report to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
