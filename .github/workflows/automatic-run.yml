@@ -47,7 +47,7 @@ jobs:
         run: |
           shopt -s dotglob
           mkdir -p build/reports/jgiven-html/$RUN_ID
-          mv build/reports/jgiven-html/* build/reports/jgiven-html/$RUN_ID/   
+          find build/reports/jgiven-html -mindepth 1 -maxdepth 1 ! -name "$RUN_ID" -exec mv {} build/reports/jgiven-html/$RUN_ID/ \; 
 
       - name: Deploy JGiven HTML report to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
