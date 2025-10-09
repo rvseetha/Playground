@@ -58,4 +58,4 @@ jobs:
           echo "Report URL: https://rvseetha.github.io/Playground/${RUN_ID}/index.html"
 
       - name: Delete files older than 30 minutes
-        run: find build/reports/jgiven-html -type f -mmin +30 -delete
+        run: find build/reports/jgiven-html -type f -mmin +5 -delete
