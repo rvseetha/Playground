@@ -37,6 +37,14 @@ jobs:
       - name: List JGiven report files
         run: ls -l build/reports/jgiven-html
 
+      - name: Set RUN_ID
+        run: echo "RUN_ID=$(date +%Y%m%d%H%M%S)" >> $GITHUB_ENV
+
+      - name: Move report to history folder
+        run: |
+          mkdir -p build/reports/jgiven-html/$RUN_ID
+          mv build/reports/jgiven-html/* build/reports/jgiven-html/$RUN_ID/     
+
       - name: Deploy JGiven HTML report to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
@@ -44,3 +52,10 @@ jobs:
           publish_dir: build/reports/jgiven-html
           publish_branch: gh-pages
           force_orphan: true
+
+      - name: Show published report link
+        run: |
+          echo "Report URL: https://rvseetha.github.io/Playground/${RUN_ID}/index.html"
+
+      - name: Delete files older than 30 minutes
+        run: find build/reports/jgiven-html -type f -mmin +30 -delete
