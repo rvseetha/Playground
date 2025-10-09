@@ -31,6 +31,9 @@ jobs:
             ~/.gradle/wrapper
           key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
 
+      - name: Delete report folders older than 5 minutes
+        run: find build/reports/jgiven-html -mindepth 1 -maxdepth 1 -type d -mmin +5 -exec rm -rf {} +
+
       - name: Run build and JGiven report
         run: ./gradlew clean test jgivenReport --info
 
@@ -56,5 +59,3 @@ jobs:
         run: |
           echo "Report URL: https://rvseetha.github.io/Playground/${RUN_ID}/index.html"
 
-      - name: Delete files older than 30 minutes
-        run: find build/reports/jgiven-html -type f -mmin +5 -delete
