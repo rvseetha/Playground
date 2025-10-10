@@ -1,20 +1,20 @@
-name: Automatic Build and JGiven Report
-#description5: Automatically builds the project and generates a JGiven report on code push or pull request.
+name: Build, Test, and Publish JGiven Report
 
 on:
   push:
     branches: [ main, feature/publish-to-github-pages ]
   pull_request:
-permissions:
-  contents: write
-
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
 
 jobs:
+  # ===================================================================
+  # JOB 1: Build the project and generate the JGiven report
+  # ===================================================================
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
+      - name: Checkout project code
         uses: actions/checkout@v4
 
       - name: Set up JDK 21
@@ -31,32 +31,71 @@ jobs:
             ~/.gradle/wrapper
           key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
 
-      - name: Delete report folders older than 5 minutes
-        run: if [ -d build/reports/jgiven-html ]; then find build/reports/jgiven-html -mindepth 1 -maxdepth 1 -type d -mmin +5 -exec rm -rf {} +; fi
-
-      - name: Run build and JGiven report
+      - name: Run build and generate JGiven report
         run: ./gradlew clean test jgivenReport --info
 
-      - name: List JGiven report files
-        run: ls -l build/reports/jgiven-html
-
-      - name: Set RUN_ID
-        run: echo "RUN_ID=$(date +%Y%m%d%H%M%S)" >> $GITHUB_ENV
-
-      - name: Move report to history folder
-        run: |
-          shopt -s dotglob
-          mkdir -p build/reports/jgiven-html/$RUN_ID
-          find build/reports/jgiven-html -mindepth 1 -maxdepth 1 ! -name "$RUN_ID" -exec mv {} build/reports/jgiven-html/$RUN_ID/ \; 
-
-      - name: Deploy JGiven HTML report to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
+      - name: Upload JGiven report as artifact
+        uses: actions/upload-artifact@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: build/reports/jgiven-html
-          publish_branch: gh-pages
+          name: jgiven-report-artifact
+          path: build/reports/jgiven-html
+          retention-days: 1 # We only need the artifact for a short time
+
+  # =========================================================================
+  # JOB 2: Publish the report to GitHub Pages and manage history
+  # =========================================================================
+  publish-report:
+    # This job runs only after the 'build' job has succeeded
+    needs: build
+    runs-on: ubuntu-latest
+
+    # Grant permissions to write to the gh-pages branch
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout gh-pages branch
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages # Checkout the branch where reports are stored
+
+      - name: Set unique Run ID
+        run: echo "RUN_ID=$(date +%Y%m%d-%H%M%S)" >> $GITHUB_ENV
+
+      - name: Download JGiven report artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: jgiven-report-artifact
+          # Download into the new unique directory
+          path: ${{ env.RUN_ID }}
+
+      - name: Delete report folders older than 5 minutes
+        run: |
+          echo "Searching for directories in $(pwd) older than 5 minutes..."
+          # -mmin +5 means modified more than 5 minutes ago.
+          # -mindepth 1 prevents it from matching the current directory '.'
+          # We check if there are any directories to delete to avoid errors.
+          find . -mindepth 1 -maxdepth 1 -type d -mmin +5 -exec echo "Deleting old report: {}" \; -exec rm -rf {} +
+          echo "Cleanup complete."
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Commit and push changes
+        run: |
+          git add .
+          # Check if there are any changes to commit
+          if git diff-index --quiet HEAD; then
+            echo "No changes to commit. The only report might have been cleaned up."
+          else
+            git commit -m "Add report ${{ env.RUN_ID }} and clean up old reports"
+            git push
+          fi
 
       - name: Show published report link
         run: |
-          echo "Report URL: https://rvseetha.github.io/Playground/${RUN_ID}/index.html"
-
+          # The GitHub repository is extracted from the GITHUB_REPOSITORY variable
+          # Example: rvseetha/Playground
+          echo "✅ Report published! URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/${{ env.RUN_ID }}/"
