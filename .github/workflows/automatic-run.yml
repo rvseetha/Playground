@@ -5,7 +5,7 @@ on:
   push:
     branches: [ main, feature/publish-to-github-pages ]
   pull_request:
-  # Allows you to run this workflow manually from the Actions tab
+# Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
 jobs:
@@ -70,13 +70,27 @@ jobs:
           # Download into the new unique directory
           path: ${{ env.RUN_ID }}
 
-      - name: Delete report folders older than 5 minutes
+      - name: Delete reports older than 5 minutes based on folder name
         run: |
-          echo "Searching for directories in $(pwd) older than 5 minutes..."
-          # -mmin +5 means modified more than 5 minutes ago.
-          # -mindepth 1 prevents it from matching the current directory '.'
-          # We check if there are any directories to delete to avoid errors.
-          find . -mindepth 1 -maxdepth 1 -type d -mmin +5 -exec echo "Deleting old report: {}" \; -exec rm -rf {} +
+          # Calculate the cutoff time (5 minutes ago) in the same format as RUN_ID
+          CUTOFF_TIME=$(date -d '5 minutes ago' '+%Y%m%d-%H%M%S')
+          echo "Current time is $(date '+%Y%m%d-%H%M%S')"
+          echo "Deleting any report directory created before $CUTOFF_TIME"
+          
+          # Loop through all directories in the current path
+          for dir in */; do
+            # Remove the trailing slash to get the directory name
+            dir_name=${dir%/}
+          
+            # Check if the directory name matches our timestamp format and is older than the cutoff
+            # The regex ensures we only target our report folders and not things like '.git'
+            if [[ "$dir_name" =~ ^[0-9]{8}-[0-9]{6}$ && "$dir_name" < "$CUTOFF_TIME" ]]; then
+              echo "Deleting old report: $dir_name"
+              rm -rf "$dir_name"
+            else
+              echo "Keeping report: $dir_name"
+            fi
+          done
           echo "Cleanup complete."
 
       - name: Configure Git
