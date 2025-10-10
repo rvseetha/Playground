@@ -48,7 +48,7 @@ jobs:
   publish-report:
     # This job runs only after the 'build' job has succeeded
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest #Use CI here
 
     # Grant permissions to write to the gh-pages branch
     permissions:
@@ -71,6 +71,8 @@ jobs:
           path: ${{ env.RUN_ID }}
 
       - name: Delete reports older than 5 minutes based on folder name
+        # Calculate the cutoff time (14 days ago) in the same format as RUN_ID
+        #CUTOFF_TIME=$(date -d '14 days ago' '+%Y%m%d-%H%M%S')
         run: |
           # Calculate the cutoff time (5 minutes ago) in the same format as RUN_ID
           CUTOFF_TIME=$(date -d '5 minutes ago' '+%Y%m%d-%H%M%S')
