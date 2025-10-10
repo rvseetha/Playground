@@ -1,0 +1,117 @@
+name: Build, Test, and Publish JGiven Report
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+# Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  # ===================================================================
+  # JOB 1: Build the project and generate the JGiven report
+  # ===================================================================
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout project code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+
+      - name: Run build and generate JGiven report
+        run: ./gradlew clean test jgivenReport --info
+
+      - name: Upload JGiven report as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: jgiven-report-artifact
+          path: build/reports/jgiven-html
+          retention-days: 1 # We only need the artifact for a short time
+
+  # =========================================================================
+  # JOB 2: Publish the report to GitHub Pages and manage history
+  # =========================================================================
+  publish-report:
+    # This job runs only after the 'build' job has succeeded
+    needs: build
+    runs-on: ubuntu-latest #Use CI here
+
+    # Grant permissions to write to the gh-pages branch
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout gh-pages branch
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages # Checkout the branch where reports are stored
+
+      - name: Set unique Run ID
+        run: echo "RUN_ID=$(date +%Y%m%d-%H%M%S)" >> $GITHUB_ENV
+
+      - name: Download JGiven report artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: jgiven-report-artifact
+          # Download into the new unique directory
+          path: ${{ env.RUN_ID }}
+
+      - name: Delete reports older than 5 minutes based on folder name
+        # Calculate the cutoff time (14 days ago) in the same format as RUN_ID
+        #CUTOFF_TIME=$(date -d '14 days ago' '+%Y%m%d-%H%M%S')
+        run: |
+          # Calculate the cutoff time (5 minutes ago) in the same format as RUN_ID
+          CUTOFF_TIME=$(date -d '5 minutes ago' '+%Y%m%d-%H%M%S')
+          echo "Current time is $(date '+%Y%m%d-%H%M%S')"
+          echo "Deleting any report directory created before $CUTOFF_TIME"
+          
+          # Loop through all directories in the current path
+          for dir in */; do
+            # Remove the trailing slash to get the directory name
+            dir_name=${dir%/}
+          
+            # Check if the directory name matches our timestamp format and is older than the cutoff
+            # The regex ensures we only target our report folders and not things like '.git'
+            if [[ "$dir_name" =~ ^[0-9]{8}-[0-9]{6}$ && "$dir_name" < "$CUTOFF_TIME" ]]; then
+              echo "Deleting old report: $dir_name"
+              rm -rf "$dir_name"
+            else
+              echo "Keeping report: $dir_name"
+            fi
+          done
+          echo "Cleanup complete."
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Commit and push changes
+        run: |
+          git add .
+          # Check if there are any changes to commit
+          if git diff-index --quiet HEAD; then
+            echo "No changes to commit. The only report might have been cleaned up."
+          else
+            git commit -m "Add report ${{ env.RUN_ID }} and clean up old reports"
+            git push
+          fi
+
+      - name: Show published report link
+        run: |
+          # The GitHub repository is extracted from the GITHUB_REPOSITORY variable
+          # Example: rvseetha/Playground
+          echo "✅ Report published! URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/${{ env.RUN_ID }}/"
