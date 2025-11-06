@@ -140,3 +140,7 @@ jobs:
           # The GitHub repository is extracted from the GITHUB_REPOSITORY variable
           # Example: rvseetha/Playground
           echo "✅ Report published! URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/${{ env.RUN_ID }}/"
+          with:
+            name: jgiven-report-link
+            # Download into the new unique directory
+            path: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/${{ env.RUN_ID }}/
