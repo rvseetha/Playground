@@ -39,6 +39,6 @@ tasks.register<JavaExec>("jgivenReport") {
         "--sourceDir=build/jgiven-reports",
         "--targetDir=build/reports/jgiven-html"
     )
-    dependsOn("test")
+    mustRunAfter("test")
 }
 

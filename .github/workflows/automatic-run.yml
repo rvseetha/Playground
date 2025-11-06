@@ -6,6 +6,11 @@ on:
   pull_request:
 # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to run the workflow against (e.g. main)'
+        required: false
+        default: 'main'
 
 jobs:
   # ===================================================================
@@ -32,20 +37,40 @@ jobs:
           key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
 
       - name: Run build and generate JGiven report
-        run: ./gradlew clean test jgivenReport --info
+        shell: bash
+        run: |
+          set +e
+          ./gradlew clean test --info
+          TEST_EXIT=$?
+          echo "TEST_EXIT=$TEST_EXIT" >> $GITHUB_ENV
+          set -e
+
+          # Always attempt to generate the report even if tests failed.
+          ./gradlew jgivenReport --info || true
 
       - name: Upload JGiven report as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: jgiven-report-artifact
+          name: jgiven-report
           path: build/reports/jgiven-html
           retention-days: 1 # We only need the artifact for a short time
+
+      - name: Fail build job if tests failed
+        shell: bash
+        run: |
+          if [ "${{ env.TEST_EXIT }}" != "0" ]; then
+            echo "Tests failed (exit code: ${{ env.TEST_EXIT }}). Failing the build job."
+            exit 1
+          else
+            echo "Tests passed."
+          fi
 
   # =========================================================================
   # JOB 2: Publish the report to GitHub Pages and manage history
   # =========================================================================
   publish-report:
     # This job runs only after the 'build' job has succeeded
+    if: always()
     needs: build
     runs-on: ubuntu-latest #Use CI here
 
@@ -110,8 +135,21 @@ jobs:
             git push
           fi
 
-      - name: Show published report link
+      - name: Publish clickable report link and upload link artifact
+        shell: bash
         run: |
-          # The GitHub repository is extracted from the GITHUB_REPOSITORY variable
-          # Example: rvseetha/Playground
-          echo "✅ Report published! URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/${{ env.RUN_ID }}/"
+          REPORT_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/${{ env.RUN_ID }}/"
+          # Add clickable link to the workflow run summary
+          echo "Report published! [JGiven HTML Report]($REPORT_URL)" >> $GITHUB_STEP_SUMMARY
+
+          # Create a tiny artifact containing the link so it shows up in the artifacts list
+          rm -rf report-link
+          mkdir -p report-link
+          printf "%s\n" "$REPORT_URL" > report-link/report-url.txt
+
+      - name: Upload published report link as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: published-jgiven-html-link
+          path: report-link
+          retention-days: 1
