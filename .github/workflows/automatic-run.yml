@@ -37,7 +37,16 @@ jobs:
           key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
 
       - name: Run build and generate JGiven report
-        run: ./gradlew clean test jgivenReport --info --continue
+        shell: bash
+        run: |
+          set +e
+          ./gradlew clean test --info
+          TEST_EXIT=$?
+          echo "TEST_EXIT=$TEST_EXIT" >> $GITHUB_ENV
+          set -e
+
+          # Always attempt to generate the report even if tests failed.
+          ./gradlew jgivenReport --info || true
 
       - name: Upload JGiven report as artifact
         uses: actions/upload-artifact@v4
@@ -45,6 +54,16 @@ jobs:
           name: jgiven-report-artifact
           path: build/reports/jgiven-html
           retention-days: 1 # We only need the artifact for a short time
+
+      - name: Fail build job if tests failed
+        shell: bash
+        run: |
+          if [ "${{ env.TEST_EXIT }}" != "0" ]; then
+            echo "Tests failed (exit code: ${{ env.TEST_EXIT }}). Failing the build job."
+            exit 1
+          else
+            echo "Tests passed."
+          fi
 
   # =========================================================================
   # JOB 2: Publish the report to GitHub Pages and manage history
