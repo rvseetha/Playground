@@ -135,12 +135,21 @@ jobs:
             git push
           fi
 
-      - name: Show published report link
+      - name: Publish clickable report link and upload link artifact
+        shell: bash
         run: |
-          # The GitHub repository is extracted from the GITHUB_REPOSITORY variable
-          # Example: rvseetha/Playground
-          echo "✅ Report published! URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/${{ env.RUN_ID }}/"
-          with:
-            name: jgiven-report-link
-            # Download into the new unique directory
-            path: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/${{ env.RUN_ID }}/
+          REPORT_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/${{ env.RUN_ID }}/"
+          # Add clickable link to the workflow run summary
+          echo "✅ Report published! [View report]($REPORT_URL)" >> $GITHUB_STEP_SUMMARY
+
+          # Create a tiny artifact containing the link so it shows up in the artifacts list
+          rm -rf report-link
+          mkdir -p report-link
+          printf "%s\n" "$REPORT_URL" > report-link/report-url.txt
+
+      - name: Upload published report link as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: jgiven-published-link
+          path: report-link
+          retention-days: 1
