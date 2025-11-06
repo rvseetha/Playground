@@ -51,7 +51,7 @@ jobs:
       - name: Upload JGiven report as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: jgiven-report-artifact
+          name: jgiven-report
           path: build/reports/jgiven-html
           retention-days: 1 # We only need the artifact for a short time
 
@@ -140,7 +140,7 @@ jobs:
         run: |
           REPORT_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/${{ env.RUN_ID }}/"
           # Add clickable link to the workflow run summary
-          echo "✅ Report published! [View report]($REPORT_URL)" >> $GITHUB_STEP_SUMMARY
+          echo "Report published! [JGiven HTML Report]($REPORT_URL)" >> $GITHUB_STEP_SUMMARY
 
           # Create a tiny artifact containing the link so it shows up in the artifacts list
           rm -rf report-link
@@ -150,6 +150,6 @@ jobs:
       - name: Upload published report link as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: jgiven-published-link
+          name: published-jgiven-html-link
           path: report-link
           retention-days: 1
