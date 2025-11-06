@@ -6,7 +6,7 @@
     </listeners>
     <test name="SampleTest">
         <packages>
-            <package name="tests"/>
+            <package name="tests.SampleTest"/>
         </packages>
     </test>
 </suite>
